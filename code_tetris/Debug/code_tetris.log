@@ -1,0 +1,3 @@
+﻿  main.cpp
+c:\users\chaowei\desktop\sideproject_cpp_tetris\code_tetris\code_tetris\main.cpp(149): warning C4715: 'check_piece_valid': 不是所有控制路徑都傳回值
+  code_tetris.vcxproj -> C:\Users\chaowei\Desktop\sideproject_cpp_tetris\code_tetris\Debug\code_tetris.exe
