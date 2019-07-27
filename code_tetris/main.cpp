@@ -68,7 +68,8 @@ const Tetrino TETRINOS[] = {
 
 enum Game_Phase
 {
-	GAME_PHASE_PLAY
+	GAME_PHASE_PLAY,
+	GAME_PHASE_LINE
 };
 
 
@@ -84,13 +85,20 @@ struct Piece_State
 struct Game_State
 {
 	u8 board[WIDTH*HEIGHT];
-	Piece_State piece;
+	u8 lines[HEIGHT];
+	s32 pending_line_count;
 
+	Piece_State piece;
+	
 	Game_Phase phase;
 
+	s32 start_level;
 	s32 level;
+	s32 line_count;
+	s32 points;
 
 	f32 next_drop_time;
+	f32 highlight_end_time;
 	f32 time;
 };
 
@@ -138,6 +146,52 @@ inline u8 tetrino_get(const Tetrino *tetrino, s32 row, s32 col, s32 rotation)
 		return tetrino->data[col*side + (side - row - 1)];
 	}
 	return 0;
+}
+
+inline u8 check_row_filled(const u8 *values, s32 width, s32 row)
+{
+	for (s32 col = 0; col < width; ++col)
+	{
+		if (!matrix_get(values, width, row, col))
+		{
+			return 0;
+		}
+	}
+	return 1;
+}
+
+s32 find_lines(const u8 *values, s32 width, s32 height, u8 *lines_out)
+{
+	s32 count = 0;
+	for (s32 row = 0; row < height; ++row)
+	{
+		u8 filled = check_row_filled(values, width, row);
+		lines_out[row] = filled;
+		count += filled;
+	}
+	return count;
+}
+
+void clear_lines(u8* values, s32 width, s32 height, const u8 *lines)
+{
+	s32 src_row = height - 1;
+	for (s32 dst_row = height - 1; dst_row >= 0; --dst_row)
+	{
+		while (src_row > 0 && lines[src_row])
+		{
+			--src_row;
+		}
+
+		if (src_row < 0)
+		{
+			memset(values + dst_row * width, 0, width);
+		}
+		else
+		{
+			memcpy(values + dst_row * width, values + src_row * width, width);
+			--src_row;
+		}
+	}
 }
 
 bool check_piece_valid(const Piece_State *piece, const u8 *board, s32 width, s32 height){
@@ -222,6 +276,62 @@ inline bool soft_drop(Game_State *game)
 	return true;
 }
 
+inline s32 compute_points(s32 level, s32 line_count)
+{
+	switch (line_count)
+	{
+	case 1:
+		return 40 * (level + 1);
+	case 2:
+		return 100 * (level + 1);
+	case 3:
+		return 300 * (level + 1);
+	case 4:
+		return 1200 * (level + 1);
+	}
+	return 0;
+}
+
+inline s32 min(s32 x, s32 y)
+{
+	return x < y ? x : y;
+}
+
+inline s32 max(s32 x, s32 y)
+{
+	return x > y ? x : y;
+}
+
+inline s32 get_lines_for_next_level(s32 start_level,s32 level)
+{
+	s32 first_level_up_limit = min((start_level * 10 + 10), max(100, (start_level*10 - 50)));
+	if (level == start_level)
+	{
+		return first_level_up_limit;
+	}
+	s32 diff = level - start_level;
+	return first_level_up_limit + diff * 10;
+}
+
+void update_game_line(Game_State *game)
+{
+	if (game->time >= game->highlight_end_time)
+	{
+		clear_lines(game->board, WIDTH, HEIGHT, game->lines);
+		game->line_count += game->pending_line_count;
+		game->points += compute_points(game->level, game->pending_line_count);
+
+		s32 lines_for_next_level = get_lines_for_next_level(game->start_level, game->level);
+
+		if (game->line_count >= lines_for_next_level)
+		{
+			++game->level;
+		}
+
+		game->phase = GAME_PHASE_PLAY;
+	}
+}
+
 // control tetrino
 void update_game_play(Game_State *game , const Input_State *input)
 {
@@ -254,6 +364,12 @@ void update_game_play(Game_State *game , const Input_State *input)
 	{
 		soft_drop(game);
 	}
+	game->pending_line_count = find_lines(game->board, WIDTH, HEIGHT, game->lines);
+	if (game->pending_line_count > 0)
+	{
+		game->phase = GAME_PHASE_LINE;
+		game->highlight_end_time = game->time + 0.5f;
+	}
 }
 
 void update_game(Game_State *game , const Input_State *input)
@@ -261,7 +377,10 @@ void update_game(Game_State *game , const Input_State *input)
 	switch (game->phase) 
 	{
 	case GAME_PHASE_PLAY:
-		return update_game_play(game, input);
+		update_game_play(game, input);
+		break;
+	case GAME_PHASE_LINE:
+		update_game_line(game);
 		break;
 	}
 }
