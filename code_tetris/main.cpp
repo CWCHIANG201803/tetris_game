@@ -368,7 +368,7 @@ void update_game_play(Game_State *game , const Input_State *input)
 	if (game->pending_line_count > 0)
 	{
 		game->phase = GAME_PHASE_LINE;
-		game->highlight_end_time = game->time + 0.5f;
+		game->highlight_end_time = game->time + 0.1f;
 	}
 }
 
@@ -446,8 +446,22 @@ void draw_board(SDL_Renderer *renderer,
 
 void render_game(const Game_State *game, SDL_Renderer *renderer)
 {
+	Color highlight_color = color(0xFF, 0xFF, 0xFF, 0xFF);
 	draw_board(renderer, game->board, WIDTH, HEIGHT, 0, 0);
 	draw_piece(renderer, &game->piece, 0, 0);
+
+	if (game->phase == GAME_PHASE_LINE)
+	{
+		for (s32 row = 0; row < HEIGHT; ++row)
+		{
+			if (game->lines[row])
+			{
+				s32 x = 0;
+				s32 y = row * GRID_SIZE;
+				fill_rect(renderer, x, y, WIDTH*GRID_SIZE, GRID_SIZE, highlight_color);
+			}
+		}
+	}
 }
 
 
