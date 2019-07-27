@@ -307,7 +307,6 @@ void draw_piece(SDL_Renderer *renderer, const Piece_State *piece, s32 offset_x, 
 	}
 }
 
-
 void draw_board(SDL_Renderer *renderer,
 	const u8 *board, s32 width, s32 height,
 	s32 offset_x, s32 offset_y)
@@ -317,10 +316,11 @@ void draw_board(SDL_Renderer *renderer,
 		for (s32 col = 0; col < width; ++col)
 		{
 			u8 value = matrix_get(board, width, row, col);
-			if (value)
-			{
-				draw_cell(renderer, row, col, value, offset_x, offset_y);
-			}
+			draw_cell(renderer, row, col, value, offset_x, offset_y);
+			//if (value)
+			//{
+			//	draw_cell(renderer, row, col, value, offset_x, offset_y);
+			//}
 		}
 	}
 }
