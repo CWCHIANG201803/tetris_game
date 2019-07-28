@@ -97,11 +97,11 @@ const Tetrino TETRINOS[] = {
 
 enum Game_Phase
 {
+	GAME_PHASE_START,
 	GAME_PHASE_PLAY,
 	GAME_PHASE_LINE,
 	GAME_PHASE_GAMEOVER
 };
-
 
 struct Piece_State
 {
@@ -302,22 +302,23 @@ inline s32 random_int(s32 min, s32 max)
 	return min + rand() % range;
 }
 
+inline f32 get_time_to_next_drop(s32 level)
+{
+	if (level > 29) {
+		level = 29;
+	}
+	return FRAMES_PER_DROP[level] * TARGET_SECONDS_PER_FRAME;
+}
 
 void spawn_piece(Game_State *game)
 {
 	game->piece = {};
 	game->piece.tetrino_index = (u8)random_int(0, ARRAY_COUNT(TETRINOS));
 	game->piece.offset_col = WIDTH / 2;
+	game->next_drop_time = game->time + get_time_to_next_drop(game->level);
 }
 
-inline f32 get_time_to_next_drop(s32 level)
-{
-	if (level > 29)
-	{
-		level = 29;
-	}
-	return FRAMES_PER_DROP[level] * TARGET_SECONDS_PER_FRAME;
-}
+
 
 
 inline bool soft_drop(Game_State *game)
@@ -370,6 +371,38 @@ inline s32 get_lines_for_next_level(s32 start_level,s32 level)
 	s32 diff = level - start_level;
 	return first_level_up_limit + diff * 10;
 }
+
+void update_game_start(Game_State *game, const Input_State *input)
+{
+	if (input->dup)
+	{
+		++game->start_level;
+	}
+
+	if (input->ddown && game->start_level > 0)
+	{
+		--game->start_level;
+	}
+
+	if (input->da)
+	{
+		memset(game->board, 0, WIDTH*HEIGHT);
+		game->level = game->start_level;
+		game->line_count = 0;
+		game->points = 0;
+		spawn_piece(game);
+		game->phase = GAME_PHASE_PLAY;
+	}
+}
+
+void update_game_gameover(Game_State *game, const Input_State *input)
+{
+	if (input->da)
+	{
+		game->phase = GAME_PHASE_START;
+	}
+}
+
 
 void update_game_line(Game_State *game)
 {
@@ -440,11 +473,17 @@ void update_game(Game_State *game , const Input_State *input)
 {
 	switch (game->phase) 
 	{
+	case GAME_PHASE_START:
+		update_game_start(game, input);
+		break;
 	case GAME_PHASE_PLAY:
 		update_game_play(game, input);
 		break;
 	case GAME_PHASE_LINE:
 		update_game_line(game);
+		break;
+	case GAME_PHASE_GAMEOVER:
+		update_game_gameover(game, input);
 		break;
 	}
 }
@@ -482,7 +521,6 @@ void draw_string(SDL_Renderer *renderer, TTF_Font *font, const char *text,
 		break;
 	case TEXT_ALIGN_RIGHT:
 		rect.x = x - surface->w;
-
 		break;
 	}
 	SDL_RenderCopy(renderer, texture, 0, &rect);
@@ -541,8 +579,16 @@ void draw_board(SDL_Renderer *renderer,
 void render_game(const Game_State *game, SDL_Renderer *renderer, TTF_Font *font)
 {
 	Color highlight_color = color(0xFF, 0xFF, 0xFF, 0xFF);
-	draw_board(renderer, game->board, WIDTH, HEIGHT, 0, 0);
-	draw_piece(renderer, &game->piece, 0, 0);
+
+
+	s32 margin_y = 60;
+
+	draw_board(renderer, game->board, WIDTH, HEIGHT, 0, margin_y);
+	
+	if (game->phase == GAME_PHASE_PLAY)
+	{
+		draw_piece(renderer, &game->piece, 0, margin_y);
+	}
 
 	if (game->phase == GAME_PHASE_LINE)
 	{
@@ -551,17 +597,35 @@ void render_game(const Game_State *game, SDL_Renderer *renderer, TTF_Font *font)
 			if (game->lines[row])
 			{
 				s32 x = 0;
-				s32 y = row * GRID_SIZE;
+				s32 y = row * GRID_SIZE + margin_y;
 				fill_rect(renderer, x, y, WIDTH*GRID_SIZE, GRID_SIZE, highlight_color);
 			}
 		}
 	}
 	else if (game->phase == GAME_PHASE_GAMEOVER)
 	{
+		s32 x = WIDTH * GRID_SIZE / 2;
+		s32 y = HEIGHT * GRID_SIZE / 2;
 
+		draw_string(renderer, font, "GAME OVER", 
+			x, y, TEXT_ALIGN_CENTER, highlight_color);
 	}
 
-	draw_string(renderer, font, "TETRIS", 0, 0 , TEXT_ALIGN_LEFT, highlight_color);
+	fill_rect(renderer, 
+		0 ,margin_y, 
+		WIDTH*GRID_SIZE,(HEIGHT - VISIBLE_HEIGHT)*GRID_SIZE, 
+		color(0x00, 0x00, 0x00, 0x00));
+
+	char buffer[4096];
+	sprintf_s(buffer, sizeof(buffer),"LEVEL: %d",game->level);
+	draw_string(renderer, font, buffer, 5, 5, TEXT_ALIGN_LEFT, highlight_color);
+
+	sprintf_s(buffer, sizeof(buffer), "LINES: %d ", game->line_count);
+	draw_string(renderer, font, buffer, 5, 35, TEXT_ALIGN_LEFT, highlight_color);
+
+	sprintf_s(buffer, sizeof(buffer), "POINTS: %d ", game->points);
+	draw_string(renderer, font, buffer, 5, 65, TEXT_ALIGN_LEFT, highlight_color);
+
 }
 
 
@@ -579,7 +643,7 @@ int main(int argc, char* argv[]) {
 	SDL_Renderer *renderer = SDL_CreateRenderer(window,-1,SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
 	
 	const char *font_name = "arial.ttf";
-	TTF_Font *font = TTF_OpenFont(font_name, 20);
+	TTF_Font *font = TTF_OpenFont(font_name, 24);
 
 
 	Game_State game = {};
