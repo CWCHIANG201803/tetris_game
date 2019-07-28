@@ -578,6 +578,9 @@ void draw_board(SDL_Renderer *renderer,
 
 void render_game(const Game_State *game, SDL_Renderer *renderer, TTF_Font *font)
 {
+
+	char buffer[4096];
+
 	Color highlight_color = color(0xFF, 0xFF, 0xFF, 0xFF);
 
 
@@ -605,18 +608,30 @@ void render_game(const Game_State *game, SDL_Renderer *renderer, TTF_Font *font)
 	else if (game->phase == GAME_PHASE_GAMEOVER)
 	{
 		s32 x = WIDTH * GRID_SIZE / 2;
-		s32 y = HEIGHT * GRID_SIZE / 2;
+		s32 y = (HEIGHT * GRID_SIZE + margin_y) / 2;
 
 		draw_string(renderer, font, "GAME OVER", 
 			x, y, TEXT_ALIGN_CENTER, highlight_color);
 	}
+	else if (game->phase == GAME_PHASE_START)
+	{
+		s32 x = WIDTH * GRID_SIZE / 2;
+		s32 y = (HEIGHT * GRID_SIZE + margin_y) / 2;
+
+		draw_string(renderer, font, "PRESS START",
+			x, y, TEXT_ALIGN_CENTER, highlight_color);
+
+		sprintf_s(buffer, sizeof(buffer), "STARTING LEVEL: %d", game->start_level);
+		draw_string(renderer, font , buffer, 
+						x, y + 30, TEXT_ALIGN_CENTER, highlight_color);
+	}
 
 	fill_rect(renderer, 
-		0 ,margin_y, 
-		WIDTH*GRID_SIZE,(HEIGHT - VISIBLE_HEIGHT)*GRID_SIZE, 
-		color(0x00, 0x00, 0x00, 0x00));
+				0 ,margin_y, 
+				WIDTH*GRID_SIZE,(HEIGHT - VISIBLE_HEIGHT)*GRID_SIZE, 
+				color(0x00, 0x00, 0x00, 0x00));
 
-	char buffer[4096];
+
 	sprintf_s(buffer, sizeof(buffer),"LEVEL: %d",game->level);
 	draw_string(renderer, font, buffer, 5, 5, TEXT_ALIGN_LEFT, highlight_color);
 
