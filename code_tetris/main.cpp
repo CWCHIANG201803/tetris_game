@@ -95,7 +95,7 @@ const Tetrino TETRINOS[] = {
 	tetrino(TETRINO_7, 3)
 };
 
-enum Game_Phase
+enum class Game_Phase
 {
 	GAME_PHASE_START,
 	GAME_PHASE_PLAY,
@@ -120,7 +120,7 @@ struct Game_State
 
 	Piece_State piece;
 	
-	Game_Phase phase;
+	Game_Phase phase = Game_Phase::GAME_PHASE_START;
 
 	s32 start_level;
 	s32 level;
@@ -148,7 +148,8 @@ struct Input_State
 	s8 da;
 };
 
-enum Text_Align
+
+enum class Text_Align
 {
 	TEXT_ALIGN_LEFT,
 	TEXT_ALIGN_CENTER,
@@ -391,7 +392,7 @@ void update_game_start(Game_State *game, const Input_State *input)
 		game->line_count = 0;
 		game->points = 0;
 		spawn_piece(game);
-		game->phase = GAME_PHASE_PLAY;
+		game->phase = Game_Phase::GAME_PHASE_PLAY;
 	}
 }
 
@@ -399,7 +400,7 @@ void update_game_gameover(Game_State *game, const Input_State *input)
 {
 	if (input->da)
 	{
-		game->phase = GAME_PHASE_START;
+		game->phase = Game_Phase::GAME_PHASE_START;
 	}
 }
 
@@ -419,7 +420,7 @@ void update_game_line(Game_State *game)
 			++game->level;
 		}
 
-		game->phase = GAME_PHASE_PLAY;
+		game->phase = Game_Phase::GAME_PHASE_PLAY;
 	}
 }
 
@@ -431,23 +432,20 @@ void update_game_play(Game_State *game , const Input_State *input)
 	{
 		--piece.offset_col;
 	}
-	if (input->dright > 0)
-	{
+	if (input->dright > 0){
 		++piece.offset_col;
 	}
-	if (input-> dup > 0)
-	{
+	if (input-> dup > 0){
 		piece.rotation = (piece.rotation + 1) % 4;
 	}
+
 	if (check_piece_valid(&piece, game->board, WIDTH, HEIGHT)) {
 		game->piece = piece;
 	}
-	if (input->ddown > 0)
-	{
+	if (input->ddown > 0){
 		soft_drop(game);
 	}
-	if (input->da > 0)
-	{
+	if (input->da > 0){
 		while (soft_drop(game));
 	}
 
@@ -458,14 +456,14 @@ void update_game_play(Game_State *game , const Input_State *input)
 	game->pending_line_count = find_lines(game->board, WIDTH, HEIGHT, game->lines);
 	if (game->pending_line_count > 0)
 	{
-		game->phase = GAME_PHASE_LINE;
+		game->phase = Game_Phase::GAME_PHASE_LINE;
 		game->highlight_end_time = game->time + 0.1f;
 	}
 
 	s32 game_over_row = 0;
 	if (!check_row_empty(game->board, WIDTH, game_over_row))
 	{
-		game->phase = GAME_PHASE_GAMEOVER;
+		game->phase = Game_Phase::GAME_PHASE_GAMEOVER;
 	}
 }
 
@@ -473,16 +471,16 @@ void update_game(Game_State *game , const Input_State *input)
 {
 	switch (game->phase) 
 	{
-	case GAME_PHASE_START:
+	case Game_Phase::GAME_PHASE_START:
 		update_game_start(game, input);
 		break;
-	case GAME_PHASE_PLAY:
+	case Game_Phase::GAME_PHASE_PLAY:
 		update_game_play(game, input);
 		break;
-	case GAME_PHASE_LINE:
+	case Game_Phase::GAME_PHASE_LINE:
 		update_game_line(game);
 		break;
-	case GAME_PHASE_GAMEOVER:
+	case Game_Phase::GAME_PHASE_GAMEOVER:
 		update_game_gameover(game, input);
 		break;
 	}
@@ -510,16 +508,17 @@ void draw_string(SDL_Renderer *renderer, TTF_Font *font, const char *text,
 	rect.w = surface->w;
 	rect.h = surface->h;
 
+	Text_Align align = Text_Align::TEXT_ALIGN_CENTER;
 	switch (alignment)
 	{
-	case TEXT_ALIGN_LEFT:
+	case Text_Align::TEXT_ALIGN_LEFT:
 		rect.x = x;
 		rect.y = y;
 		break;
-	case TEXT_ALIGN_CENTER:
+	case Text_Align::TEXT_ALIGN_CENTER:
 		rect.x = x - surface->w / 2;
 		break;
-	case TEXT_ALIGN_RIGHT:
+	case Text_Align::TEXT_ALIGN_RIGHT:
 		rect.x = x - surface->w;
 		break;
 	}
@@ -588,12 +587,12 @@ void render_game(const Game_State *game, SDL_Renderer *renderer, TTF_Font *font)
 
 	draw_board(renderer, game->board, WIDTH, HEIGHT, 0, margin_y);
 	
-	if (game->phase == GAME_PHASE_PLAY)
+	if (game->phase == Game_Phase::GAME_PHASE_PLAY)
 	{
 		draw_piece(renderer, &game->piece, 0, margin_y);
 	}
 
-	if (game->phase == GAME_PHASE_LINE)
+	if (game->phase == Game_Phase::GAME_PHASE_LINE)
 	{
 		for (s32 row = 0; row < HEIGHT; ++row)
 		{
@@ -605,25 +604,25 @@ void render_game(const Game_State *game, SDL_Renderer *renderer, TTF_Font *font)
 			}
 		}
 	}
-	else if (game->phase == GAME_PHASE_GAMEOVER)
+	else if (game->phase == Game_Phase::GAME_PHASE_GAMEOVER)
 	{
 		s32 x = WIDTH * GRID_SIZE / 2;
 		s32 y = (HEIGHT * GRID_SIZE + margin_y) / 2;
 
 		draw_string(renderer, font, "GAME OVER", 
-			x, y, TEXT_ALIGN_CENTER, highlight_color);
+			x, y, Text_Align::TEXT_ALIGN_CENTER, highlight_color);
 	}
-	else if (game->phase == GAME_PHASE_START)
+	else if (game->phase == Game_Phase::GAME_PHASE_START)
 	{
 		s32 x = WIDTH * GRID_SIZE / 2;
 		s32 y = (HEIGHT * GRID_SIZE + margin_y) / 2;
 
 		draw_string(renderer, font, "PRESS START",
-			x, y, TEXT_ALIGN_CENTER, highlight_color);
+			x, y, Text_Align::TEXT_ALIGN_CENTER, highlight_color);
 
 		sprintf_s(buffer, sizeof(buffer), "STARTING LEVEL: %d", game->start_level);
 		draw_string(renderer, font , buffer, 
-						x, y + 30, TEXT_ALIGN_CENTER, highlight_color);
+						x, y + 30, Text_Align::TEXT_ALIGN_CENTER, highlight_color);
 	}
 
 	fill_rect(renderer, 
@@ -633,13 +632,13 @@ void render_game(const Game_State *game, SDL_Renderer *renderer, TTF_Font *font)
 
 
 	sprintf_s(buffer, sizeof(buffer),"LEVEL: %d",game->level);
-	draw_string(renderer, font, buffer, 5, 5, TEXT_ALIGN_LEFT, highlight_color);
+	draw_string(renderer, font, buffer, 5, 5, Text_Align::TEXT_ALIGN_LEFT, highlight_color);
 
 	sprintf_s(buffer, sizeof(buffer), "LINES: %d ", game->line_count);
-	draw_string(renderer, font, buffer, 5, 35, TEXT_ALIGN_LEFT, highlight_color);
+	draw_string(renderer, font, buffer, 5, 35, Text_Align::TEXT_ALIGN_LEFT, highlight_color);
 
 	sprintf_s(buffer, sizeof(buffer), "POINTS: %d ", game->points);
-	draw_string(renderer, font, buffer, 5, 65, TEXT_ALIGN_LEFT, highlight_color);
+	draw_string(renderer, font, buffer, 5, 65, Text_Align::TEXT_ALIGN_LEFT, highlight_color);
 
 }
 
@@ -649,8 +648,7 @@ int main(int argc, char* argv[]) {
 		return 1;
 	}
 
-	if (TTF_Init() < 0)
-	{
+	if (TTF_Init() < 0){
 		return 2;
 	}
 
