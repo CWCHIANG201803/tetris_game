@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.28307.705
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "code_tetris", "code_tetris\code_tetris.vcxproj", "{FDD98A29-7000-4227-9C7B-5010EDA418D5}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tetris_game", "tetris_game\tetris_game.vcxproj", "{FDD98A29-7000-4227-9C7B-5010EDA418D5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
