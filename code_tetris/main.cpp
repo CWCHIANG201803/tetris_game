@@ -291,7 +291,7 @@ void merge_piece(Game_State *game)
 			{
 				s32 board_row = game->piece.offset_row + row;
 				s32 board_col = game->piece.offset_col + col;
-				matrix_set(game->board, WIDTH, board_row, board_col, value);
+				matrix_set(game->board, static_cast<s32>(WIDTH), board_row, board_col, value);
 			}
 		}
 	}
@@ -314,8 +314,8 @@ inline f32 get_time_to_next_drop(s32 level)
 void spawn_piece(Game_State *game)
 {
 	game->piece = {};
-	game->piece.tetrino_index = (u8)random_int(0, ARRAY_COUNT(TETRINOS));
-	game->piece.offset_col = WIDTH / 2;
+	game->piece.tetrino_index = static_cast<u8>(random_int(0, ARRAY_COUNT(TETRINOS)));
+	game->piece.offset_col = static_cast<s32>(WIDTH) / 2;
 	game->next_drop_time = game->time + get_time_to_next_drop(game->level);
 }
 
@@ -325,7 +325,7 @@ void spawn_piece(Game_State *game)
 inline bool soft_drop(Game_State *game)
 {
 	++game->piece.offset_row;
-	if (!check_piece_valid(&game->piece, game->board, WIDTH, HEIGHT))
+	if (!check_piece_valid(&game->piece, game->board, static_cast<s32>(WIDTH), static_cast<s32>(HEIGHT)))
 	{
 		--game->piece.offset_row;
 		merge_piece(game);
@@ -365,6 +365,7 @@ inline s32 max(s32 x, s32 y)
 inline s32 get_lines_for_next_level(s32 start_level,s32 level)
 {
 	s32 first_level_up_limit = min((start_level * 10 + 10), max(100, (start_level*10 - 50)));
+
 	if (level == start_level)
 	{
 		return first_level_up_limit;
@@ -533,13 +534,13 @@ void draw_cell(SDL_Renderer *renderer, s32 row, s32 col, u8 value, s32 offset_x,
 	Color light_color = LIGHT_COLORS[value];
 	Color dark_color = DARK_COLORS[value];
 	
-	s32 edge = GRID_SIZE / 8;
-	s32 x = col * GRID_SIZE + offset_x;
-	s32 y = row * GRID_SIZE + offset_y;
+	s32 edge = static_cast<s32>(GRID_SIZE)/ 8;
+	s32 x = col * static_cast<s32>(GRID_SIZE) + offset_x;
+	s32 y = row * static_cast<s32>(GRID_SIZE) + offset_y;
 
-	fill_rect(renderer,x, y, GRID_SIZE, GRID_SIZE, dark_color);
-	fill_rect(renderer, x + edge, y, GRID_SIZE - edge, GRID_SIZE - edge, light_color);
-	fill_rect(renderer, x + edge, y + edge, GRID_SIZE - edge * 2, GRID_SIZE - edge * 2, base_color);
+	fill_rect(renderer,x, y, static_cast<s32>(GRID_SIZE), static_cast<s32>(GRID_SIZE), dark_color);
+	fill_rect(renderer, x + edge, y, static_cast<s32>(GRID_SIZE) - edge, static_cast<s32>(GRID_SIZE) - edge, light_color);
+	fill_rect(renderer, x + edge, y + edge, static_cast<s32>(GRID_SIZE) - edge * 2, static_cast<s32>(GRID_SIZE) - edge * 2, base_color);
 }
 
 void draw_piece(SDL_Renderer *renderer, const Piece_State *piece, s32 offset_x, s32 offset_y)
@@ -585,7 +586,7 @@ void render_game(const Game_State *game, SDL_Renderer *renderer, TTF_Font *font)
 
 	s32 margin_y = 60;
 
-	draw_board(renderer, game->board, WIDTH, HEIGHT, 0, margin_y);
+	draw_board(renderer, game->board, static_cast<s32>(WIDTH), static_cast<s32>(HEIGHT), 0, margin_y);
 	
 	if (game->phase == Game_Phase::GAME_PHASE_PLAY)
 	{
