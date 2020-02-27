@@ -257,19 +257,12 @@ bool check_piece_valid(const Piece_State *piece, const u8 *board, s32 width, s32
 			if (value > 0){
 				s32 board_row = piece->offset_row + row;
 				s32 board_col = piece->offset_col + col;
-				if (board_row < 0){
-					return false;
-				}
-				if (board_row >= height){
-					return false;
-				}
-				if (board_col < 0){
-					return false;
-				}
-				if (board_col >= width){
-					return false;
-				}
-				if (matrix_get(board, width, board_row, board_col)){
+				if (board_row < 0 ||
+					board_row >= height|| 
+					board_col < 0 || 
+					board_col>=width || 
+					matrix_get(board, width, board_row, board_col))
+				{
 					return false;
 				}
 			}
